@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #f5f7fa; color: #172033; font-family: Arial, "Noto Sans Thai", Tahoma, sans-serif; }
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+@layer components {
+  .panel { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm; }
+  .field { @apply min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100; }
+  .label { @apply mb-1.5 block text-sm font-semibold text-slate-700; }
+  .button-primary { @apply inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50; }
+  .button-secondary { @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50; }
+  .table-wrap { @apply overflow-x-auto rounded-xl border border-slate-200; }
+  .table { @apply w-full min-w-[700px] text-left text-sm; }
+  .table th { @apply bg-slate-50 px-4 py-3 font-semibold text-slate-600; }
+  .table td { @apply border-t border-slate-100 px-4 py-3 align-middle; }
+}

@@ -1,0 +1,112 @@
+# FireCheck
+
+เว็บแอปบันทึกการตรวจและติดตามงานถังดับเพลิงสำหรับบริษัทหรือโรงงาน พัฒนาด้วย Next.js App Router, React, TypeScript, Tailwind CSS, Prisma และ SQLite โดยไม่ต้องพึ่งบริการฐานข้อมูลแบบเสียค่าใช้จ่าย
+
+> **ข้อจำกัดการใช้งาน:** ระบบนี้เป็นเครื่องมือช่วยบันทึกและติดตามงานเท่านั้น รายการตรวจต้องปรับให้ตรงกับข้อกำหนดของบริษัทและผู้รับผิดชอบด้านความปลอดภัย ระบบไม่รับรองความปลอดภัยและไม่ใช้แทนการตรวจโดยผู้เชี่ยวชาญ
+
+## เทคโนโลยีและเวอร์ชัน
+
+| แพ็กเกจ | เวอร์ชัน |
+|---|---:|
+| Next.js | 16.4.5 |
+| React / React DOM | 19.3.1 |
+| TypeScript | 5.9.3 |
+| Tailwind CSS | 3.4.19 |
+| Prisma / Prisma Client | 6.19.3 |
+| Zod | 4.6.7 |
+| bcryptjs | 2.4.3 |
+| Vitest | 5.1.0 |
+
+## เริ่มต้นใช้งาน
+
+ต้องติดตั้ง Node.js 20.9 ขึ้นไปและ npm
+
+```powershell
+npm install
+Copy-Item .env.example .env
+npx prisma migrate dev --name init
+npm run db:seed
+npm run dev
+```
+
+เปิด `http://localhost:3000` แล้วเข้าสู่ระบบด้วยบัญชี development ด้านล่าง ระบบใช้ไฟล์ SQLite ใน `prisma/dev.db` ตาม URL `file:./dev.db` (Prisma resolve จากโฟลเดอร์ `prisma`)
+
+### บัญชีสำหรับ development เท่านั้น
+
+ข้อมูล seed มีบัญชีตัวอย่างต่อไปนี้ ใช้รหัสผ่านเดียวกัน `ChangeMe123!`
+
+| บทบาท | อีเมล |
+|---|---|
+| ผู้ดูแลระบบ (ADMIN) | `admin@firecheck.local` |
+| ผู้ตรวจ (INSPECTOR) | `inspector@firecheck.local` |
+| ผู้ดูแลงานแก้ไข (MAINTENANCE) | `maintenance@firecheck.local` |
+
+**ห้ามนำบัญชีหรือรหัสผ่านนี้ไปใช้ใน production** Seed จะปฏิเสธทำงานเมื่อ `NODE_ENV=production` ให้เปลี่ยนรหัสผ่านตัวอย่างทันทีเมื่อใช้ในเครื่องพัฒนา และสร้างผู้ใช้จริงผ่านหน้าจัดการผู้ใช้ก่อนเปิดใช้งานจริง ไม่มีรหัสผ่านหรือ secret ของ production ใน source code
+
+## คำสั่งที่ใช้บ่อย
+
+```powershell
+npm run dev                 # โหมดพัฒนา
+npm run lint                # ตรวจ ESLint
+npm test                    # รันทดสอบ Vitest
+npm run build               # สร้าง production build
+npm start                   # เปิด production build
+npm run db:migrate          # สร้างและใช้ migration สำหรับ development
+npm run db:deploy           # ใช้ migration ที่มีอยู่ใน production
+npm run db:seed             # เติมข้อมูล development ตัวอย่าง
+npm run db:generate         # สร้าง Prisma Client
+npm run db:studio           # เปิด Prisma Studio
+```
+
+## โครงสร้างสำคัญ
+
+- `src/app/(app)/` หน้าระบบที่ต้องเข้าสู่ระบบ
+- `src/app/api/` Route Handlers สำหรับ login, ผู้ใช้, ตำแหน่ง, ถัง, ผลตรวจ, งานแก้ไข, dashboard และรายงาน
+- `src/lib/auth.ts` session cookie แบบ HttpOnly; เก็บ SHA-256 hash ของ token ในฐานข้อมูลและมีวันหมดอายุ
+- `src/lib/validation.ts` Zod schemas สำหรับข้อมูลจาก API
+- `src/lib/inspection-logic.ts` สรุปผลรวม PASS/FAIL
+- `prisma/schema.prisma` โมเดลและความสัมพันธ์ฐานข้อมูล
+- `prisma/seed.ts` ข้อมูลตัวอย่างสำหรับ development
+
+## บทบาทและการเก็บข้อมูล
+
+- `ADMIN` จัดการผู้ใช้ ตำแหน่ง และถัง รวมถึงข้อมูลทั้งหมด
+- `INSPECTOR` ดูถังและสร้าง/อ่านผลตรวจ
+- `MAINTENANCE` ดูและอัปเดตงานแก้ไข
+- ผลตรวจและรายการตรวจย่อยถูกสร้างใน transaction และไม่เปิด API แก้ไขผลตรวจย้อนหลัง
+- ถังและตำแหน่งถูกปิดใช้งานแทนการลบ ข้อมูลตรวจอ้างอิงแบบ restrict เพื่อรักษาประวัติ
+- ผลตรวจที่มีข้อ FAIL ต้องมีหมายเหตุหรือรายละเอียดข้อบกพร่อง และผู้ตรวจยืนยันก่อนบันทึก งานแก้ไขจะถูกสร้างสำหรับข้อ FAIL ที่เลือกไว้
+
+## ทดสอบระบบ
+
+การทดสอบปัจจุบันครอบคลุมการสรุปผลตรวจ PASS/FAIL, การปฏิเสธฟอร์มไม่ครบ และการปฏิเสธ API เมื่อไม่มี session
+
+```powershell
+npm test
+npm run lint
+npm run build
+```
+
+ทดสอบการใช้งานด้วยมือหลัง seed:
+
+1. เข้าสู่ระบบเป็น `inspector@firecheck.local`
+2. เปิด **เริ่มตรวจถัง** เลือกถังที่ใช้งาน และบันทึกทุกข้อเป็น PASS
+3. ตรวจอีกครั้งโดยตั้งข้อใดข้อหนึ่งเป็น FAIL ยืนยันการบันทึก และเลือกสร้างงานแก้ไข
+4. เปิด **ประวัติการตรวจ** และหน้ารายละเอียดเพื่อดูผลกับผู้ตรวจ
+5. เข้าสู่ระบบเป็น `maintenance@firecheck.local` แล้วเปิดงานแก้ไข เพิ่มหมายเหตุ/เริ่มดำเนินการ และปิดงานเมื่อทำเสร็จ
+6. ตรวจรายงานตามช่วงวันที่และใช้ปุ่มพิมพ์ของเบราว์เซอร์
+
+## SQLite, สำรองข้อมูล และการ deploy
+
+SQLite เหมาะกับการติดตั้งขนาดเล็กหรือใช้งานบนเครื่องเดียว ไม่เหมาะกับหลาย instance ที่เขียนฐานข้อมูลพร้อมกันหรือ filesystem แบบชั่วคราว/เครือข่ายที่ไม่รับประกัน file locking
+
+- สำรองฐานข้อมูลเป็นประจำ โดยหยุดการเขียนก่อนคัดลอกไฟล์ `prisma/dev.db` หรือใช้เครื่องมือ backup ที่รองรับ SQLite; เก็บสำเนาไว้นอกเครื่องและทดสอบการกู้คืน
+- ตอน deploy ให้เก็บไฟล์ SQLite บน **persistent storage** ที่เขียนได้ และ mount ให้ path สอดคล้องกับ `DATABASE_URL`; ห้ามวางฐานข้อมูลบน filesystem ชั่วคราวของ container/serverless
+- ตั้งค่า environment `DATABASE_URL`, `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS` ผ่าน secret/environment management ของแพลตฟอร์ม ห้าม commit `.env`
+- ใช้ `npm run db:deploy` ก่อนเริ่มแอป, `npm run build` เพื่อสร้างแอป และ `npm start` เพื่อรัน
+- เปิด HTTPS ใน production เพื่อให้ cookie เป็น Secure; กำหนด backup/restore และผู้ดูแลฐานข้อมูลตามแนวทางองค์กร
+- ถ้าต้องรองรับผู้ใช้พร้อมกันหลาย instance หรือ throughput สูง ควรประเมินฐานข้อมูล server ที่เหมาะสม แทนการแชร์ไฟล์ SQLite
+
+## การอัปเดตรายการตรวจ
+
+รายการตรวจตัวอย่างอยู่ใน `src/lib/constants.ts` และเป็นรายการที่ API ตรวจสอบตาม allow-list การปรับรายการในระบบใช้งานจริงควรมีการอนุมัติจากผู้รับผิดชอบด้านความปลอดภัย และวางแผน versioning ของ checklist เพื่อรักษาความหมายของประวัติเดิม
