@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { DefectStatus, Role } from "@prisma/client";
 import { requireUser, invalidInput, serverError } from "@/lib/api";
 import { db } from "@/lib/db";
+import { getAssignableRoles } from "@/lib/assignee-roles";
 import { defectQuerySchema, defectUpdateSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
       include: {
         extinguisher: { include: { location: true } },
         assignee: { select: { id: true, name: true } },
+        image: { select: { id: true } },
         createdBy: { select: { name: true } },
         notes: { include: { author: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
       },
@@ -45,8 +47,8 @@ export async function PATCH(request: Request) {
     const { note, status, ...updates } = parsed.data;
     if (updates.assigneeId) {
       const assignee = await db.user.findUnique({ where: { id: updates.assigneeId }, select: { active: true, role: true } });
-      if (!assignee?.active || (assignee.role !== Role.ADMIN && assignee.role !== Role.MAINTENANCE)) {
-        return NextResponse.json({ error: { code: "INVALID_ASSIGNEE", message: "ผู้รับผิดชอบต้องเป็นผู้ดูแลงานแก้ไขที่ยังใช้งานอยู่" } }, { status: 422 });
+      if (!assignee?.active || !getAssignableRoles(auth.user.role).includes(assignee.role)) {
+        return NextResponse.json({ error: { code: "INVALID_ASSIGNEE", message: "ผู้รับผิดชอบไม่มีสิทธิ์ตามบทบาทผู้ใช้งานหรือปิดใช้งานอยู่" } }, { status: 422 });
       }
     }
     const defect = await db.$transaction(async (tx) => {

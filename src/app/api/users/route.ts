@@ -3,14 +3,22 @@ import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireUser, invalidInput, serverError } from "@/lib/api";
 import { db } from "@/lib/db";
+import { getAssignableRoles } from "@/lib/assignee-roles";
 import { userSchema } from "@/lib/validation";
 
-export async function GET() {
-  const auth = await requireUser([Role.ADMIN, Role.INSPECTOR]);
+export async function GET(request: Request) {
+  const auth = await requireUser([Role.ADMIN, Role.INSPECTOR, Role.MAINTENANCE]);
   if (!auth.user) return auth.response;
   try {
+    const forAssignee = new URL(request.url).searchParams.get("for") === "assignee";
     const users = await db.user.findMany({
-      where: auth.user.role === Role.ADMIN ? {} : { active: true, role: Role.MAINTENANCE },
+      where: forAssignee
+        ? { active: true, deletedAt: null, role: { in: getAssignableRoles(auth.user.role) } }
+        : auth.user.role === Role.ADMIN
+          ? { deletedAt: null }
+          : auth.user.role === Role.MAINTENANCE
+            ? { active: true, deletedAt: null, role: { in: [Role.ADMIN, Role.MAINTENANCE] } }
+            : { active: true, deletedAt: null, role: Role.MAINTENANCE },
       select: { id: true, name: true, email: true, role: true, active: true },
       orderBy: { name: "asc" },
     });

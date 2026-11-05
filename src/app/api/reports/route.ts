@@ -1,8 +1,9 @@
-import { InspectionStatus, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireUser, serverError, apiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { reportQuerySchema } from "@/lib/validation";
+import { getDisplayedInspectionStatus } from "@/lib/inspection-logic";
 
 export async function GET(request: Request) {
   const auth = await requireUser();
@@ -17,13 +18,20 @@ export async function GET(request: Request) {
     const inspections = await db.inspection.findMany({
       where: {
         inspectedAt: { gte: from, lte: to },
-        ...(status ? { status: status as InspectionStatus } : {}),
         ...(inspectorId ? { inspectorId } : {}),
         ...(locationId ? { extinguisher: { locationId } } : {}),
       },
-      include: { extinguisher: { include: { location: true } }, inspector: { select: { name: true } } },
+      include: {
+        extinguisher: { include: { location: true } },
+        inspector: { select: { name: true } },
+        items: { select: { id: true, status: true } },
+        defects: { select: { inspectionItemId: true, status: true } },
+      },
       orderBy: { inspectedAt: "desc" },
     });
+    const displayedInspections = inspections
+      .map((inspection) => ({ ...inspection, status: getDisplayedInspectionStatus(inspection) }))
+      .filter((inspection) => !status || inspection.status === status);
     const openDefects = await db.defect.count({
       where: {
         status: { in: ["OPEN", "IN_PROGRESS"] },
@@ -34,10 +42,10 @@ export async function GET(request: Request) {
     const locations = await db.location.findMany({ where: { active: true }, select: { id: true, name: true, building: true } });
     return NextResponse.json({
       data: {
-        inspections,
+        inspections: displayedInspections,
         totals: {
-          pass: inspections.filter((inspection) => inspection.status === "PASS").length,
-          fail: inspections.filter((inspection) => inspection.status === "FAIL").length,
+          pass: displayedInspections.filter((inspection) => inspection.status === "PASS").length,
+          fail: displayedInspections.filter((inspection) => inspection.status === "FAIL").length,
           openDefects,
         },
         inspectors,

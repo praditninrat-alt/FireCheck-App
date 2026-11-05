@@ -45,6 +45,7 @@ model User {
   passwordHash         String
   role                 Role
   active               Boolean        @default(true)
+  deletedAt            DateTime?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   sessions             Session[]
@@ -177,11 +178,21 @@ model Defect {
   closedBy         User?           @relation("DefectCloser", fields: [closedById], references: [id], onDelete: SetNull)
   updatedBy        User?           @relation("DefectUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
   notes            DefectNote[]
+  image              DefectImage?
 
   @@index([status, dueAt])
   @@index([extinguisherId, createdAt])
   @@index([assigneeId, status])
   @@index([inspectionId])
+}
+
+model DefectImage {
+  id        String   @id @default(cuid())
+  defectId  String   @unique
+  mimeType  String
+  data      Bytes
+  createdAt DateTime @default(now())
+  defect    Defect   @relation(fields: [defectId], references: [id], onDelete: Cascade)
 }
 
 model DefectNote {

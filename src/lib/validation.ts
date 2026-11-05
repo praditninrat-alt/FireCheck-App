@@ -3,6 +3,7 @@ import { CHECKLIST, DEFECT_STATUSES, ROLES, SEVERITIES } from "@/lib/constants";
 
 const optionalText = z.string().trim().max(1000).optional().nullable().transform((v) => v || null);
 const optionalDate = z.union([z.string().datetime(), z.literal(""), z.null()]).optional().transform((v) => typeof v === "string" && v ? new Date(v) : null);
+const optionalUpdateDate = z.union([z.string().datetime(), z.literal(""), z.null()]).optional().transform((v) => v === undefined ? undefined : typeof v === "string" && v ? new Date(v) : null);
 
 export const loginSchema = z.object({
   email: z.string().email().max(254),
@@ -44,6 +45,7 @@ export const inspectionSchema = z.object({
       severity: z.enum(SEVERITIES),
       assigneeId: z.string().optional().nullable(),
       dueAt: optionalDate,
+      imageDataUrl: z.string().max(7_000_100).optional(),
     }).optional(),
   })).length(CHECKLIST.length),
 }).superRefine((data, context) => {
@@ -61,8 +63,8 @@ export const inspectionSchema = z.object({
 export const defectUpdateSchema = z.object({
   status: z.enum(DEFECT_STATUSES).optional(),
   severity: z.enum(SEVERITIES).optional(),
-  assigneeId: z.string().optional().nullable().transform((v) => v || null),
-  dueAt: optionalDate,
+  assigneeId: z.string().optional().nullable().transform((v) => v === undefined ? undefined : v || null),
+  dueAt: optionalUpdateDate,
   note: z.string().trim().min(1).max(1000).optional(),
 }).refine((value) => Object.keys(value).length > 0, "กรุณาระบุข้อมูลที่ต้องการแก้ไข");
 

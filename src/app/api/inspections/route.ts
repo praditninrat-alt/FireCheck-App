@@ -4,6 +4,8 @@ import { requireUser, invalidInput, serverError, apiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { inspectionQuerySchema, inspectionSchema } from "@/lib/validation";
 import { summarizeInspection } from "@/lib/inspection-logic";
+import { getAssignableRoles } from "@/lib/assignee-roles";
+import { decodeDefectImageDataUrl } from "@/lib/defect-image";
 
 export async function GET(request: Request) {
   const auth = await requireUser();
@@ -46,8 +48,16 @@ export async function POST(request: Request) {
     if (!extinguisher?.active) return NextResponse.json({ error: { code: "EXTINGUISHER_UNAVAILABLE", message: "ไม่พบถังที่ใช้งานได้" } }, { status: 422 });
     const assigneeIds = [...new Set(parsed.data.items.flatMap((item) => item.defect?.assigneeId ? [item.defect.assigneeId] : []))];
     if (assigneeIds.length) {
-      const assignees = await db.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: [Role.ADMIN, Role.MAINTENANCE] } }, select: { id: true } });
-      if (assignees.length !== assigneeIds.length) return NextResponse.json({ error: { code: "INVALID_ASSIGNEE", message: "ผู้รับผิดชอบต้องเป็นผู้ดูแลงานแก้ไขที่ยังใช้งานอยู่" } }, { status: 422 });
+      const assignees = await db.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: getAssignableRoles(auth.user.role) } }, select: { id: true } });
+      if (assignees.length !== assigneeIds.length) return NextResponse.json({ error: { code: "INVALID_ASSIGNEE", message: "ผู้รับผิดชอบไม่มีสิทธิ์ตามบทบาทผู้ใช้งานหรือปิดใช้งานอยู่" } }, { status: 422 });
+    }
+    const images = new Map<string, { mimeType: string; data: Uint8Array<ArrayBuffer> }>();
+    for (const item of parsed.data.items) {
+      if (item.defect?.imageDataUrl) {
+        const image = decodeDefectImageDataUrl(item.defect.imageDataUrl);
+        if (!image) return NextResponse.json({ error: { code: "INVALID_IMAGE", message: "รูปภาพไม่ถูกต้องหรือมีขนาดเกิน 5 MB รองรับ JPG, PNG หรือ WebP" } }, { status: 422 });
+        images.set(item.criterion, image);
+      }
     }
     const status = summarizeInspection(parsed.data.items);
     const inspection = await db.$transaction(async (tx) => {
@@ -67,7 +77,7 @@ export async function POST(request: Request) {
         const requestItem = parsed.data.items.find((item) => item.criterion === failedItem.criterion);
         const problem = requestItem?.defect;
         if (problem) {
-          await tx.defect.create({
+          const createdDefect = await tx.defect.create({
             data: {
               inspectionId: created.id,
               inspectionItemId: failedItem.id,
@@ -78,7 +88,10 @@ export async function POST(request: Request) {
               dueAt: problem.dueAt || null,
               createdById: auth.user!.id,
             },
+            select: { id: true },
           });
+          const image = images.get(failedItem.criterion);
+          if (image) await tx.defectImage.create({ data: { defectId: createdDefect.id, ...image } });
         }
       }
       return created;

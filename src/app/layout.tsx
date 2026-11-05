@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "FireCheck | บันทึกการตรวจถังดับเพลิง",
-  description: "ระบบบันทึกและติดตามการตรวจถังดับเพลิงสำหรับองค์กร",
+  description: "ระบบบันทึกและติดตามการตรวจถังดับเพลิงสำหรับบริษัท",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

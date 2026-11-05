@@ -30,7 +30,7 @@ export function AppShell({ user, children }: { user: AuthUser; children: React.R
   }
   return <div className="min-h-screen md:flex">
     {open && <button aria-label="ปิดเมนู" className="fixed inset-0 z-30 bg-slate-950/40 md:hidden" onClick={() => setOpen(false)} />}
-    <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-950 px-4 py-5 text-white transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-950 px-4 py-5 text-white transition-transform md:sticky md:top-0 md:h-screen md:w-64 md:translate-x-0 xl:w-72 ${open ? "translate-x-0" : "-translate-x-full"}`}>
       <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2" onClick={() => setOpen(false)}>
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-lg font-bold">F</span><span><b className="block text-lg">FireCheck</b><small className="text-slate-400">บันทึกการตรวจถังดับเพลิง</small></span>
       </Link>
@@ -42,11 +42,11 @@ export function AppShell({ user, children }: { user: AuthUser; children: React.R
       <div className="rounded-2xl bg-white/5 p-3"><p className="truncate text-sm font-semibold">{user.name}</p><p className="mt-1 text-xs text-slate-400">{roleTitle[user.role]}</p><button className="mt-3 min-h-10 w-full rounded-lg border border-white/10 text-sm text-slate-300 hover:bg-white/5" onClick={logout}>ออกจากระบบ</button></div>
     </aside>
     <main className="min-w-0 flex-1">
-      <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:px-8">
+      <header className="sticky top-0 z-20 flex h-16 min-w-0 items-center gap-3 border-b border-slate-200 bg-white/95 px-3 backdrop-blur sm:px-4 md:px-8">
         <button aria-label="เปิดเมนู" className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-xl md:hidden" onClick={() => setOpen(true)}>☰</button>
-        <div className="text-sm text-slate-500">FireCheck <span className="mx-1">/</span> {links.find((item) => item.href === path)?.title ?? (path === "/inspections/new" ? "เริ่มตรวจถัง" : path === "/users" ? "จัดการผู้ใช้" : "รายละเอียด")}</div>
+        <div className="min-w-0 truncate text-sm text-slate-500">FireCheck <span className="mx-1">/</span> {links.find((item) => item.href === path)?.title ?? (path === "/inspections/new" ? "เริ่มตรวจถัง" : path === "/users" ? "จัดการผู้ใช้" : "รายละเอียด")}</div>
       </header>
-      <div className="mx-auto max-w-7xl p-4 pb-10 md:p-8">{children}<p className="mt-10 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">ระบบนี้ใช้สำหรับบันทึกและติดตามงานเท่านั้น รายการตรวจควรปรับให้ตรงกับข้อกำหนดของบริษัทและผู้รับผิดชอบด้านความปลอดภัย ไม่ใช่การรับรองความปลอดภัยหรือใช้แทนการตรวจโดยผู้เชี่ยวชาญ</p></div>
+      <div className="mx-auto max-w-7xl p-3 pb-8 sm:p-4 sm:pb-10 md:p-8">{children}<p className="mt-8 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">ระบบนี้ใช้สำหรับบันทึกและติดตามงานเท่านั้น รายการตรวจควรปรับให้ตรงกับข้อกำหนดของบริษัทและผู้รับผิดชอบด้านความปลอดภัย ไม่ใช่การรับรองความปลอดภัยหรือใช้แทนการตรวจโดยผู้เชี่ยวชาญ</p></div>
     </main>
   </div>;
 }
